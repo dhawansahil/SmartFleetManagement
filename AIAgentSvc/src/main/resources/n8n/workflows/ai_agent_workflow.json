@@ -1,0 +1,114 @@
+{
+  "name": "Smart Fleet AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "predict-maintenance",
+        "options": {}
+      },
+      "name": "Predictive Maintenance Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Fetch vehicle data from Vehicle Service\nconst vehicleData = await $http.get('http://vehicle-service/api/v1/vehicles/' + $input.item.json.vehicleId);\n\n// Fetch maintenance history from Maintenance Service\nconst maintenanceHistory = await $http.get('http://maintenance-service/api/v1/maintenance/vehicle/' + $input.item.json.vehicleId);\n\n// Prepare data for AI model\nconst features = {\n  mileage: vehicleData.mileage,\n  age: new Date().getFullYear() - vehicleData.year,\n  lastServiceDate: maintenanceHistory[0]?.serviceDate,\n  maintenanceFrequency: maintenanceHistory.length,\n  averageCost: maintenanceHistory.reduce((sum, record) => sum + record.cost, 0) / maintenanceHistory.length\n};\n\nreturn features;"
+      },
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.function",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "options": {
+          "body": {
+            "model": "gpt-4",
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are an AI assistant specialized in predictive maintenance for fleet vehicles."
+              },
+              {
+                "role": "user",
+                "content": "Analyze the following vehicle data and predict maintenance needs: {{$json}}"
+              }
+            ],
+            "temperature": 0.7
+          }
+        }
+      },
+      "name": "AI Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process AI response and format prediction\nconst aiResponse = $input.item.json;\n\nreturn {\n  vehicleId: $input.item.json.vehicleId,\n  prediction: {\n    maintenanceType: aiResponse.choices[0].message.content.maintenanceType,\n    predictedDate: aiResponse.choices[0].message.content.predictedDate,\n    confidence: aiResponse.choices[0].message.content.confidence,\n    recommendedActions: aiResponse.choices[0].message.content.recommendedActions\n  }\n};"
+      },
+      "name": "Format Prediction",
+      "type": "n8n-nodes-base.function",
+      "position": [850, 300]
+      
+    },
+    {
+      "parameters": {
+        "url": "http://maintenance-service/api/v1/maintenance/predictions",
+        "options": {
+          "body": "={{$json}}"
+        }
+      },
+      "name": "Save Prediction",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Predictive Maintenance Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Data": {
+      "main": [
+        [
+          {
+            "node": "AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Prediction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Prediction": {
+      "main": [
+        [
+          {
+            "node": "Save Prediction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+} 

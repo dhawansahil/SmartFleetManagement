@@ -1,0 +1,262 @@
+{
+  "name": "Driver Service Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "SmartFleet/drivers",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process incoming request\nconst operation = $input.item.json.operation;\nconst params = $input.item.json;\n\n// Handle Telegram voice/text input\nif (params.telegram) {\n  const text = params.telegram.text || params.telegram.voice?.text || '';\n  const chatId = params.telegram.chat?.id;\n  \n  // Map voice/text commands to operations\n  if (text.toLowerCase().includes('all drivers')) {\n    operation = 'getAll';\n  } else if (text.toLowerCase().includes('driver') && text.toLowerCase().includes('id')) {\n    const idMatch = text.match(/id[\\s:]+(\\d+)/i);\n    if (idMatch) {\n      operation = 'getById';\n      params.id = parseInt(idMatch[1]);\n    }\n  } else if (text.toLowerCase().includes('active drivers')) {\n    operation = 'getByStatus';\n    params.status = 'ACTIVE';\n  } else if (text.toLowerCase().includes('expiring licenses')) {\n    operation = 'getExpiringLicenses';\n    params.daysThreshold = 30;\n  }\n}\n\nreturn {\n  operation,\n  params,\n  telegram: params.telegram\n};"
+      },
+      "name": "Process Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.operation}}",
+              "operation": "equal",
+              "value2": "getAll"
+            }
+          ]
+        }
+      },
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "resource": "driver",
+        "returnAll": true
+      },
+      "name": "PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.telegram?.chat?.id}}",
+        "text": "=Here are all drivers:\n\n{{$json.data.map(d => `- ${d.first_name} ${d.last_name} (${d.license_number})`).join('\\n')}}",
+        "additionalFields": {}
+      },
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getById",
+        "resource": "driver",
+        "id": "={{$json.params.id}}"
+      },
+      "name": "Get Driver by ID",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        850,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.telegram?.chat?.id}}",
+        "text": "=Driver details:\n\nName: {{$json.data.first_name}} {{$json.data.last_name}}\nLicense: {{$json.data.license_number}}\nStatus: {{$json.data.status}}\nExpiry: {{$json.data.license_expiry_date}}",
+        "additionalFields": {}
+      },
+      "name": "Send Driver Details",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getByStatus",
+        "resource": "driver",
+        "status": "={{$json.params.status}}"
+      },
+      "name": "Get Drivers by Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        850,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.telegram?.chat?.id}}",
+        "text": "=Drivers with status {{$json.params.status}}:\n\n{{$json.data.map(d => `- ${d.first_name} ${d.last_name} (${d.license_number})`).join('\\n')}}",
+        "additionalFields": {}
+      },
+      "name": "Send Status Results",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getExpiringLicenses",
+        "resource": "driver",
+        "daysThreshold": "={{$json.params.daysThreshold}}"
+      },
+      "name": "Get Expiring Licenses",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        850,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.telegram?.chat?.id}}",
+        "text": "=Drivers with licenses expiring in the next {{$json.params.daysThreshold}} days:\n\n{{$json.data.map(d => `- ${d.first_name} ${d.last_name} (${d.license_number}) - Expires: ${d.license_expiry_date}`).join('\\n')}}",
+        "additionalFields": {}
+      },
+      "name": "Send Expiry Results",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Input": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Driver by ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Drivers by Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Expiring Licenses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Driver by ID": {
+      "main": [
+        [
+          {
+            "node": "Send Driver Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Drivers by Status": {
+      "main": [
+        [
+          {
+            "node": "Send Status Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Expiring Licenses": {
+      "main": [
+        [
+          {
+            "node": "Send Expiry Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+} 
