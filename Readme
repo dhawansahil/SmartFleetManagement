@@ -1,0 +1,112 @@
+
+# 🚛 Smart Fleet Management System
+
+A modular, microservice-based system designed for efficient and scalable fleet management, including route optimization, maintenance tracking, driver and vehicle management, and orchestration using n8n workflows.
+
+---
+
+## 📚 Microservice Workflow Overview
+
+### 1. 👤 User/Driver Interaction
+
+**Service:** `DriverSvc`  
+- Handles driver authentication, trip status updates (e.g., available, on-trip), and real-time location tracking.  
+- Exposes REST APIs for driver-facing applications (mobile/web).
+
+---
+
+### 2. 🚗 Vehicle Management
+
+**Service:** `VehicleSvc`  
+- Manages vehicle details such as type, capacity, and status.  
+- Tracks telemetry including fuel level, mileage, etc.  
+- Offers APIs to other services like `DriverSvc` and `AIAgentSvc`.
+
+---
+
+### 3. 🔧 Maintenance Scheduling
+
+**Service:** `MaintenanceSvc`  
+- Maintains service records, schedules, and issue tracking.  
+- Accepts telemetry alerts or manual input (e.g., engine warning).  
+- Communicates with `VehicleSvc` and `DriverSvc` to assign service slots.
+
+---
+
+### 4. 🤖 AI Route Optimization
+
+**Service:** `AIAgentSvc`  
+- Receives vehicle/driver info and trip requests.  
+- Uses logic/AI to compute optimal routes, ETA, and assign best resources.  
+- Updates `DriverSvc` and `VehicleSvc` with optimized decisions.
+
+---
+
+### 5. 🔄 Workflow Orchestration
+
+**Service:** `n8n-workflows`  
+- Automates alerts, escalations, and multi-step processes.  
+- Example: If a vehicle needs maintenance, schedule it and notify the driver/admin via email/SMS.
+
+---
+
+### 6. 🧪 Integration and Testing
+
+**Module:** `IntegrationTests`  
+- Runs end-to-end test suites to ensure service interconnectivity and workflow correctness.  
+- Example test: `Create Driver → Assign Vehicle → AI Route → Complete Trip → Record Telemetry → Trigger Maintenance`.
+
+---
+
+### 7. 🐳 Infrastructure
+
+**File:** `docker-compose.yml`  
+- Defines local development and deployment environment.  
+- Spins up containers for services, databases, n8n, and message brokers (if applicable).
+
+---
+
+## 🏗️ Architecture Highlights
+
+- **Modular Design:** Each service operates independently and communicates via REST APIs.
+- **AI-enabled Routing:** Smart dispatch and optimized route calculations via `AIAgentSvc`.
+- **Event-driven Automation:** Managed through `n8n` for seamless process orchestration.
+- **Scalable Deployment:** Containerized microservices for easy scaling and environment control.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Docker
+- Docker Compose
+- Java 17+
+- Node.js (optional for n8n customization)
+
+### Setup
+```bash
+git clone https://github.com/dhawansahil/SmartFleetManagement.git
+cd SmartFleetManagement
+docker-compose up --build
+```
+
+---
+
+## 📂 Directory Structure
+
+```
+SmartFleetManagement/
+├── DriverSvc/
+├── VehicleSvc/
+├── MaintenanceSvc/
+├── AIAgentSvc/
+├── n8n-workflows/
+├── IntegrationTests/
+└── docker-compose.yml
+```
+
+---
+
+## 🧠 Contributing
+
+Feel free to fork the repo and submit PRs. Suggestions for additional automation or AI enhancements are welcome!
