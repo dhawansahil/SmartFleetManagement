@@ -1,0 +1,3 @@
+[submodule "AIAgentSvc"]
+	path = AIAgentSvc
+	url = https://github.com/dhawansahil/AIAgentSvc.git
