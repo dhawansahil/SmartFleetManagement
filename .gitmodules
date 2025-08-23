@@ -1,0 +1,12 @@
+[submodule "AIAgentSvc"]
+	path = AIAgentSvc
+	url = https://github.com/dhawansahil/AIAgentSvc.git
+[submodule "DriverSvc"]
+	path = DriverSvc
+	url = https://github.com/dhawansahil/DriverSvc.git
+[submodule "VehicleSvc"]
+	path = VehicleSvc
+	url = https://github.com/dhawansahil/VehicleSvc.git
+[submodule "MaintainanceSvc"]
+	path = MaintainanceSvc
+	url = https://github.com/dhawansahil/MaintainanceSvc.git
